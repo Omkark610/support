@@ -23,7 +23,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root{
   --dusk:#150d2e; --plum:#2a1457; --gold:#ffb627; --pink:#ff4d8d; --teal:#2ee6c5; --text:#f5f0ff; --muted:#bdb2dc;
@@ -106,9 +105,7 @@ h1{
   box-shadow:0 0 0 6px rgba(255,182,39,.35),0 0 50px rgba(255,182,39,.45);animation:pulse 3s ease-in-out infinite;
 }
 @keyframes pulse{50%{box-shadow:0 0 0 12px rgba(255,182,39,.15),0 0 70px rgba(255,77,141,.5)}}
-.qrbox{position:relative}
-.qrbox canvas,.qrbox>img:not(.qrlogo){max-width:100%;height:auto;display:block}
-.qrbox .qrlogo{position:absolute;top:50%;left:50%;width:22%;aspect-ratio:1;transform:translate(-50%,-50%);object-fit:cover;border-radius:50%;border:4px solid #fff;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.qrbox img{max-width:100%;height:auto;display:block}
 .upi{display:flex;gap:8px;max-width:420px;margin:26px auto 0;background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:99px;padding:6px}
 .upi input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--text);font:700 1rem 'DM Sans',sans-serif;padding:0 16px;text-align:center}
 button.copy{border:0;cursor:pointer;border-radius:99px;padding:12px 22px;font:700 .95rem 'DM Sans',sans-serif;color:#2a0f2c;background:linear-gradient(100deg,var(--gold),var(--pink));transition:.2s}
@@ -202,7 +199,7 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.95rem}
     <p class="s">Scan the QR code with any UPI app, or copy the UPI ID below.</p>
     
     <div class="qrbox" id="qrbox">
-        <img style="display: block;" src="https://support.omkarkadam.in/image/donation-QR-code.jpg">
+        <img id="qrimg" style="display:block;width:100%;height:100%;object-fit:contain;border-radius:10px" src="https://support.omkarkadam.in/image/donation-QR-code.jpg" alt="UPI payment QR code">
     </div>
       
     <div class="upi">
@@ -224,30 +221,11 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.95rem}
 /* ===== CONFIG: change your UPI ID here ===== */
 const UPI_ID = "sharayu.astro@okicici";
 const UPI_NAME = "Buy Omkar a Coffee";
-/* The QR code encodes this link. Swap in your UPI link (the upiLink variable below) to make it a payment QR. */
-const QR_TARGET = "https://pbs.twimg.com/profile_images/2094795973491109888/1l6-Lmkp_400x400.jpg";
-/* Image shown in the middle of the QR code */
-const QR_LOGO = "https://pbs.twimg.com/profile_images/2094795973491109888/1l6-Lmkp_400x400.jpg";
 
 document.getElementById('upiId').value = UPI_ID;
 const upiLink = `upi://pay?pa=${encodeURIComponent(UPI_ID)}&pn=${encodeURIComponent(UPI_NAME)}&cu=INR`;
 document.getElementById('payLink').href = upiLink;
 
-function makeQR(){
-  const box = document.getElementById('qrbox');
-  box.innerHTML = '';
-  try{
-    new QRCode(box,{text:QR_TARGET,width:210,height:210,correctLevel:QRCode.CorrectLevel.H});
-    const logo = document.createElement('img');
-    logo.className = 'qrlogo';
-    logo.src = QR_LOGO;
-    logo.alt = '';
-    logo.referrerPolicy = 'no-referrer';
-    box.appendChild(logo);
-  }
-  catch(e){ box.innerHTML = '<span style="color:#333;font-weight:700">QR needs an internet connection</span>'; }
-}
-makeQR();
 
 document.getElementById('copyBtn').addEventListener('click', async e=>{
   const b = e.currentTarget, inp = document.getElementById('upiId');
