@@ -113,6 +113,8 @@ button.copy:hover{transform:scale(1.05)}
 .pay{display:inline-block;margin-top:18px;color:var(--teal);font-weight:700;text-decoration:none}
 .pay:hover{text-decoration:underline}
 footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.95rem}
+.coinpop{position:fixed;z-index:20;pointer-events:none;font-size:24px;transform:translate(-50%,-50%);animation:coinpop .75s ease-out forwards}
+@keyframes coinpop{0%{opacity:1;transform:translate(-50%,-50%) scale(.6) rotateY(0)}60%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),-90px) scale(1.2) rotateY(540deg)}}
 /* ---------- music toggle ---------- */
 #music{
   position:fixed;right:18px;bottom:18px;z-index:10;width:58px;height:58px;border-radius:50%;border:1px solid var(--line);
@@ -298,6 +300,112 @@ document.getElementById('copyBtn').addEventListener('click', async e=>{
   // Browsers block autoplay, so music starts on the first tap/scroll unless the visitor toggled it
   const first = () => { if(!playing && !userChose) start(); ['pointerdown','keydown','touchstart'].forEach(ev=>removeEventListener(ev,first)); };
   ['pointerdown','keydown','touchstart'].forEach(ev=>addEventListener(ev,first,{once:false}));
+})();
+
+/* ===== Sa Re Ga Ma guitar + coin pop on mouse hover (generated, no audio file) ===== */
+(function(){
+  const musicBtn = document.getElementById('music');
+  let ctx, bus, last = 0;
+  function setup(){
+    ctx = new (window.AudioContext||window.webkitAudioContext)();
+    bus = ctx.createGain(); bus.gain.value = 1;
+    const dry = ctx.createGain(); dry.gain.value = .9;
+    const echo = ctx.createDelay(); echo.delayTime.value = .13;
+    const fb = ctx.createGain(); fb.gain.value = .35;
+    const wet = ctx.createGain(); wet.gain.value = .35;
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 500;
+    bus.connect(dry); dry.connect(ctx.destination);
+    bus.connect(echo); echo.connect(fb); fb.connect(echo); echo.connect(hp); hp.connect(wet); wet.connect(ctx.destination);
+  }
+  // Sa Re Ga Ma Pa Dha Ni Sa' (Sa = C). Each hover plays the next swara.
+  const swaras = [['Sa',261.63],['Re',293.66],['Ga',329.63],['Ma',349.23],['Pa',392.00],['Dha',440.00],['Ni',493.88],["Sa'",523.25]];
+  let idx = 0;
+  // plucked guitar string (Karplus-Strong): a burst of noise that rings down like a real string
+  const strings = {};
+  function pluckBuffer(freq){
+    if(strings[freq]) return strings[freq];
+    const sr = ctx.sampleRate, len = Math.floor(sr*1.8), N = Math.max(2,Math.round(sr/freq));
+    const buf = ctx.createBuffer(1,len,sr), d = buf.getChannelData(0), ring = new Float32Array(N);
+    let prev = 0;
+    for(let i=0;i<N;i++){ const n = Math.random()*2-1; ring[i] = prev = prev*.5 + n*.5; } // slightly smoothed = warmer pluck
+    let p = 0;
+    for(let i=0;i<len;i++){
+      const cur = ring[p], nxt = ring[(p+1)%N];
+      d[i] = cur * (i > len-sr*.15 ? (len-i)/(sr*.15) : 1);
+      ring[p] = (cur+nxt)*.5*.9965;
+      p = (p+1)%N;
+    }
+    return strings[freq] = buf;
+  }
+  function guitar(freq,t,vol){
+    const src = ctx.createBufferSource(), g = ctx.createGain();
+    const body = ctx.createBiquadFilter(), lp = ctx.createBiquadFilter();
+    body.type = 'peaking'; body.frequency.value = 220; body.gain.value = 6; body.Q.value = 1;   // wooden body warmth
+    lp.type = 'lowpass'; lp.frequency.value = 4200;
+    src.buffer = pluckBuffer(freq); g.gain.value = vol;
+    src.connect(body); body.connect(lp); lp.connect(g); g.connect(bus); src.start(t);
+  }
+  // a soft sympathetic "tanpura" shimmer on the fifth, like a drone string
+  function shimmer(freq,t){
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = 'triangle'; o.frequency.value = freq*1.5*2;
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.015,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+.9);
+    o.connect(g); g.connect(bus); o.start(t); o.stop(t+1);
+  }
+  // coin layers: metallic bell (inharmonic partials), clink of the coin landing, low thump
+  function bell(freq,t,dur,vol){
+    [[1,'sine',1],[2.76,'sine',.55],[5.4,'sine',.3],[8.93,'sine',.15],[1,'square',.2]].forEach(([m,type,v])=>{
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.value = freq*m;
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(vol*v,t+.004);
+      g.gain.exponentialRampToValueAtTime(.0001,t+dur/(1+m*.25));
+      o.connect(g); g.connect(bus); o.start(t); o.stop(t+dur+.05);
+    });
+  }
+  function clink(t){
+    const nb = ctx.createBuffer(1,Math.floor(ctx.sampleRate*.04),ctx.sampleRate), d = nb.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/d.length,2);
+    const ns = ctx.createBufferSource(), ng = ctx.createGain(), nf = ctx.createBiquadFilter();
+    nf.type = 'bandpass'; nf.frequency.value = 5500; nf.Q.value = 1.2; ng.gain.value = .2;
+    ns.buffer = nb; ns.connect(nf); nf.connect(ng); ng.connect(bus); ns.start(t);
+  }
+  function thump(t){
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.setValueAtTime(170,t); o.frequency.exponentialRampToValueAtTime(55,t+.12);
+    g.gain.setValueAtTime(.18,t); g.gain.exponentialRampToValueAtTime(.0001,t+.15);
+    o.connect(g); g.connect(bus); o.start(t); o.stop(t+.2);
+  }
+  let lastHover = 0;
+  function coin(x,y){
+    if(!musicBtn.classList.contains('on')) return;
+    const now = performance.now();
+    if(now - last < 160) return;
+    if(now - lastHover > 2500) idx = 0;   // pause for a moment and the scale starts again from Sa
+    lastHover = last = now;
+    if(!ctx) setup();
+    if(ctx.state === 'suspended') ctx.resume();
+    const t = ctx.currentTime + .005, [name,freq] = swaras[idx];
+    clink(t); thump(t);                         // coin lands
+    guitar(freq,t,1.1);                         // the swara itself, plucked on a guitar
+    bell(freq*4,t+.03,.5,.07);                  // coin ding in the same note, two octaves up
+    bell(freq*6,t+.08,.35,.03);                 // sparkle on the fifth above
+    shimmer(freq,t);
+    pop(x,y,name);
+    idx = (idx + 1) % swaras.length;
+  }
+  function pop(x,y,label){
+    if(x == null) return;
+    const c = document.createElement('span');
+    c.className = 'coinpop'; c.textContent = '🪙';
+    c.style.left = x + 'px'; c.style.top = y + 'px';
+    c.style.setProperty('--dx', ((Math.random()-.5)*60) + 'px');
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),800);
+  }
+  document.querySelectorAll('.perks li, .cta, .pay, .tag, .ring, .qrbox, .upi, button.copy, #music').forEach(el=>{
+    el.addEventListener('pointerenter', e=>{ if(e.pointerType === 'mouse') coin(e.clientX,e.clientY); });
+  });
 })();
 </script>
 </body>
