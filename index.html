@@ -200,12 +200,11 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.95rem}
   <section id="donate">
     <h2>☕ Scan &amp; Support</h2>
     <p class="s">Scan the QR code with any UPI app, or copy the UPI ID below.</p>
+    
     <div class="qrbox" id="qrbox">
-      <!-- Put your own QR image next to this file as qr.png. If it is missing, a QR is generated from the UPI ID. -->
-        <div class="qrbox" id="qrbox" title="">
-            <img style="display: block;" src="https://support.omkarkadam.in/image/donation-QR-code.jpg">
-        </div>
+        <img style="display: block;" src="https://support.omkarkadam.in/image/donation-QR-code.jpg">
     </div>
+      
     <div class="upi">
       <input id="upiId" type="text" value="sharayu.astro@okicici" readonly aria-label="UPI ID">
       <button class="copy" id="copyBtn" type="button">Copy UPI ID</button>
